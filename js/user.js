@@ -4,7 +4,6 @@ const firebaseConfig = {
   authDomain: "thd-monitor.firebaseapp.com",
   databaseURL: "https://thd-monitor-default-rtdb.asia-southeast1.firebasedatabase.app/",
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
@@ -48,7 +47,7 @@ auth.signInWithEmailAndPassword("dashboard@thd.com", "ESP@2580")
     initChart();
     startFetching();
     watchStatus();
-    statusEl.textContent = "Online";
+    statusEl.textContent = "ONLINE";
     statusEl.style.color = "#00ff00";
   })
   .catch(err => {
@@ -64,6 +63,26 @@ function pushNotify(title, body) {
   }
 }
 
+// ==== Modal Notification ====
+function showNotificationPopup(title, message) {
+  const modal = document.getElementById("notification-modal");
+  const titleEl = document.getElementById("notification-title");
+  const messageEl = document.getElementById("notification-message");
+  const closeBtn = document.getElementById("notification-close");
+
+  titleEl.innerText = title;
+  messageEl.innerText = message;
+  modal.classList.remove("hidden");
+
+  closeBtn.onclick = () => {
+    modal.classList.add("hidden");
+  };
+
+  setTimeout(() => {
+    modal.classList.add("hidden");
+  }, 7000);
+}
+
 // ==== Periodic OFFLINE writer ====
 setInterval(() => {
   db.ref("data/AC/status").set("OFFLINE");
@@ -74,7 +93,7 @@ function watchStatus() {
   db.ref("data/AC/status").on("value", snap => {
     const val = snap.val();
     statusEl.textContent = val || "Unknown";
-    statusEl.style.color = (val === "Online") ? "#00ff00" : "#ff5555";
+    statusEl.style.color = (val === "ONLINE") ? "#00ff00" : "#ff5555";
   });
 }
 
@@ -112,7 +131,7 @@ function updateValue(refPath, element, unit = "") {
   });
 }
 
-// ==== Graph Setup ====
+// ==== Chart ====
 function initChart() {
   const ctx = document.getElementById("dataChart").getContext("2d");
   chart = new Chart(ctx, {
@@ -160,15 +179,78 @@ function getRandomColor() {
 }
 
 // ==== Tariff Monitor ====
+let startTime = null;
+let harmonicUptime = 0;
+let energyRate = 7.0;
+let fixedCharge = 0;
+let surcharge = 0;
+let cess = 0;
+
+const fixedToggle = document.getElementById("toggle-fixed");
+const trendRate = document.getElementById("trend-energy-rate");
+const trendFixed = document.getElementById("trend-fixed");
+const trendSurcharge = document.getElementById("trend-surcharge");
+const trendCess = document.getElementById("trend-cess");
+const uptimeEl = document.getElementById("tariff-uptime");
+const harmonicUptimeEl = document.getElementById("harmonic-uptime");
+
+// Utility to safely parse string or number input
+function safeParseFloat(val, fallback = 0) {
+  const parsed = parseFloat(val);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+function fetchTariffTrends() {
+  db.ref("command/energyRate").on("value", snap => {
+    energyRate = safeParseFloat(snap.val(), 7.0);
+    trendRate.textContent = `${energyRate.toFixed(2)} ₹/kWh`;
+  });
+
+  db.ref("command/fixedCharge").on("value", snap => {
+    fixedCharge = safeParseFloat(snap.val());
+    trendFixed.textContent = `${fixedCharge.toFixed(2)} ₹`;
+  });
+
+  db.ref("command/surcharge").on("value", snap => {
+    surcharge = safeParseFloat(snap.val());
+    trendSurcharge.textContent = `${surcharge.toFixed(2)} ₹`;
+  });
+
+  db.ref("command/cess").on("value", snap => {
+    cess = safeParseFloat(snap.val());
+    trendCess.textContent = `${cess.toFixed(2)} ₹`;
+  });
+}
+
+fetchTariffTrends();
+
 document.getElementById("start-tariff").onclick = () => {
   if (!tariffTimer) {
     energyWh = 0;
+    startTime = Date.now();
     tariffTimer = setInterval(() => {
       energyWh += powerVal / 3600;
       const kWh = energyWh / 1000;
+      let cost = kWh * energyRate;
+
+      const thd = safeParseFloat(thdEl.textContent) || 0;
+
+      if (fixedToggle.checked) cost += fixedCharge;
+
+      if (thd > 5) {
+        cost += surcharge;
+        const thdExcess = Math.floor((thd - 5) / 5);
+        cost += thdExcess * cess;
+        harmonicUptime++;
+      }
+
       energyWhEl.textContent = energyWh.toFixed(2);
-      tariffHourEl.textContent = tariffRate.toFixed(2);
-      tariffTotalEl.textContent = (kWh * tariffRate).toFixed(2);
+      tariffHourEl.textContent = energyRate.toFixed(2);
+      tariffTotalEl.textContent = cost.toFixed(2);
+
+      const uptimeMins = Math.floor((Date.now() - startTime) / 60000);
+      uptimeEl.textContent = `${uptimeMins} min`;
+      harmonicUptimeEl.textContent = `${Math.floor(harmonicUptime / 60)} min`;
     }, 1000);
   }
 };
@@ -177,12 +259,28 @@ document.getElementById("reset-tariff").onclick = () => {
   clearInterval(tariffTimer);
   tariffTimer = null;
   energyWh = 0;
+  startTime = null;
+  harmonicUptime = 0;
   energyWhEl.textContent = "0";
   tariffHourEl.textContent = "0.00";
   tariffTotalEl.textContent = "0.00";
+  uptimeEl.textContent = "0 min";
+  harmonicUptimeEl.textContent = "0 min";
 };
 
-// ==== Custom Alerts ====
+const harmonicWarning = document.getElementById("harmonic-warning");
+
+db.ref("data/AC/thd").on("value", snap => {
+  const thd = parseFloat(snap.val());
+  if (!isNaN(thd) && thd > 5) {
+    harmonicWarning.classList.remove("hidden");
+  } else {
+    harmonicWarning.classList.add("hidden");
+  }
+});
+
+
+// ==== Alerts ====
 document.getElementById("set-alert").onclick = () => {
   const param = alertParam.value;
   const max = parseFloat(alertMax.value);
@@ -215,6 +313,7 @@ function checkAlerts(param, value) {
     alertStatus.style.color = "#ff0000";
     if (lastAlert[param] !== "max") {
       pushNotify("⚠️ Alert", `${param.toUpperCase()} has reached MAX (${value})`);
+      showNotificationPopup("⚠️ Alert", `${param.toUpperCase()} has reached MAX (${value})`);
       lastAlert[param] = "max";
     }
   } else if (value >= settings.warn) {
@@ -222,6 +321,7 @@ function checkAlerts(param, value) {
     alertStatus.style.color = "#ffaa00";
     if (lastAlert[param] !== "warn") {
       pushNotify("⚠️ Warning", `${param.toUpperCase()} is approaching limit (${value})`);
+      showNotificationPopup("⚠️ Warning", `${param.toUpperCase()} is approaching limit (${value})`);
       lastAlert[param] = "warn";
     }
   } else {
