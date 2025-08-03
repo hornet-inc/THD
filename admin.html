@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="css/admin.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Admin Power Control Panel ⚡</h1>
+    <div id="status-indicator">Status: <span id="system-status">Connecting...</span></div>
+
+    <!-- Live Parameter Display -->
+    <div class="segment-display-grid">
+      <div class="segment-card"><label>Voltage</label><div class="segment" id="voltage">--</div><span>V</span></div>
+      <div class="segment-card"><label>Current</label><div class="segment" id="current">--</div><span>A</span></div>
+      <div class="segment-card"><label>Power</label><div class="segment" id="power">--</div><span>W</span></div>
+      <div class="segment-card"><label>Frequency</label><div class="segment" id="frequency">--</div><span>Hz</span></div>
+      <div class="segment-card"><label>PF</label><div class="segment" id="pf">--</div></div>
+      <div class="segment-card"><label>THD</label><div class="segment" id="thd">--</div><span>%</span></div>
+    </div>
+
+    <!-- THD Control -->
+    <section class="control-section">
+      <h2>🔧 Set THD</h2>
+      <input type="number" id="thd-input" placeholder="Enter THD value" />
+      <button id="thd-set">Set</button>
+      <button id="thd-reset">Reset</button>
+    </section>
+
+    <!-- Custom Control Inputs -->
+    <section class="control-section">
+      <h2>🛠️ Custom Setpoints</h2>
+
+      <div class="set-control">
+        <label>Per Hour Rate</label>
+        <input type="text" id="set1-input" placeholder="Value for Set 1" />
+        <button onclick="updateSet1()">Set</button>
+        <button onclick="resetSet1()">Reset</button>
+      </div>
+
+      <div class="set-control">
+        <label>Base Price</label>
+        <input type="text" id="set2-input" placeholder="Value for Set 2" />
+        <button onclick="updateSet2()">Set</button>
+        <button onclick="resetSet2()">Reset</button>
+      </div>
+
+      <div class="set-control">
+        <label>Surcharge</label>
+        <input type="text" id="set3-input" placeholder="Value for Set 3" />
+        <button onclick="updateSet3()">Set</button>
+        <button onclick="resetSet3()">Reset</button>
+      </div>
+
+      <div class="set-control">
+        <label>Cess</label>
+        <input type="text" id="set4-input" placeholder="Value for Set 4" />
+        <button onclick="updateSet4()">Set</button>
+        <button onclick="resetSet4()">Reset</button>
+      </div>
+
+      <div class="set-control">
+        <label>Set 5</label>
+        <input type="text" id="set5-input" placeholder="Value for Set 5" />
+        <button onclick="updateSet5()">Set</button>
+        <button onclick="resetSet5()">Reset</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>
