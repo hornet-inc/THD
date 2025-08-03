@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Power Dashboard</title>
+  <link rel="stylesheet" href="css/user.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Smart Power Dashboard</h1>
+    <div id="status-indicator">Status: <span id="system-status">Connecting...</span></div>
+
+    <!-- 7-Segment Style Displays -->
+    <div class="segment-display-grid">
+      <div class="segment-card"><label>Voltage</label><div class="segment" id="voltage">--</div><span>V</span></div>
+      <div class="segment-card"><label>Current</label><div class="segment" id="current">--</div><span>A</span></div>
+      <div class="segment-card"><label>Power</label><div class="segment" id="power">--</div><span>W</span></div>
+      <div class="segment-card"><label>Frequency</label><div class="segment" id="frequency">--</div><span>Hz</span></div>
+      <div class="segment-card"><label>PF</label><div class="segment" id="pf">--</div></div>
+      <div class="segment-card"><label>THD</label><div class="segment" id="thd">--</div><span>%</span></div>
+    </div>
+
+    <!-- Time Series Graph -->
+    <section class="graph-section">
+      <h2>📈 Parameter Trends</h2>
+      <select id="parameter-select" multiple>
+        <option value="voltage">Voltage</option>
+        <option value="current">Current</option>
+        <option value="power">Power</option>
+        <option value="frequency">Frequency</option>
+        <option value="pf">Power Factor</option>
+        <option value="thd">THD</option>
+      </select>
+      <canvas id="dataChart" height="150"></canvas>
+    </section>
+
+    <!-- Tariff Section -->
+    <section class="tariff-section">
+      <h2>💰 Tariff Monitor</h2>
+      <div class="tariff-controls">
+        <button id="start-tariff">START</button>
+        <button id="reset-tariff">RESET</button>
+      </div>
+      <div class="segment-display-grid tariff-display">
+        <div class="segment-card"><label>Energy (Wh)</label><div class="segment" id="energy-wh">0</div></div>
+        <div class="segment-card"><label>₹/Hour</label><div class="segment" id="tariff-hour">0.00</div></div>
+        <div class="segment-card"><label>Total ₹</label><div class="segment" id="tariff-total">0.00</div></div>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="alert-section">
+      <h2>🚨 Custom Alerts</h2>
+      <div class="alert-form">
+        <label for="alert-param">Parameter:</label>
+        <select id="alert-param">
+          <option value="voltage">Voltage</option>
+          <option value="current">Current</option>
+          <option value="power">Power</option>
+          <option value="pf">Power Factor</option>
+          <option value="thd">THD</option>
+        </select>
+        <label for="alert-max">Max Value:</label>
+        <input type="number" id="alert-max" placeholder="Enter max" />
+        <label for="alert-warning">Early Warning (% before max):</label>
+        <input type="number" id="alert-warning" value="80" />
+        <div class="alert-buttons">
+          <button id="set-alert">Set Notification</button>
+          <button id="cancel-alert">Cancel</button>
+        </div>
+      </div>
+      <div id="alert-status">Alert: <span>None</span></div>
+    </section>
+
+    <!-- Data Logging -->
+    <section class="log-section">
+      <h2>📁 Data Logging</h2>
+      <div class="log-controls">
+        <button id="start-log">RECORD</button>
+        <button id="stop-log">SAVE</button>
+      </div>
+      <p>Log Status: <span id="log-status">Idle</span></p>
+    </section>
+  </div>
+
+  <!-- Push Notification Permission Prompt -->
+  <script>
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  </script>
+
+  <script src="js/user.js"></script>
+</body>
+</html>
